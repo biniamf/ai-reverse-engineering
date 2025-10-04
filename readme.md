@@ -19,3 +19,6 @@ python webui/app.py
 
 Then access the service at http://localhost:5000
 
+
+https://github.com/user-attachments/assets/77f1645a-cd8e-470f-826b-585a73e48bf4
+
