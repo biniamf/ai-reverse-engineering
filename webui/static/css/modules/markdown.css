@@ -1,0 +1,100 @@
+﻿.markdown-content table {
+	border-collapse: collapse;
+	width: 100%;
+	margin: 1em 0;
+	font-size: 0.9em;
+}
+.markdown-content th,
+.markdown-content td {
+	border: 1px solid #4b5563;
+	padding: 0.5em;
+	text-align: left;
+}
+.markdown-content th {
+	background-color: #374151;
+	font-weight: 600;
+}
+.markdown-content tr:nth-child(even) {
+	background-color: rgba(255, 255, 255, 0.02);
+}
+.markdown-content pre {
+	background-color: #161b22;
+	padding: 1em;
+	border-radius: 0.5rem;
+	overflow-x: auto;
+	max-width: 100%;
+	margin: 1em 0;
+	border: 1px solid #30363d;
+}
+.markdown-content {
+	overflow-wrap: anywhere;
+}
+.markdown-content code {
+	font-family:
+		'ui-monospace', 'SFMono-Regular', 'SF Mono', 'Menlo', 'Consolas',
+		'Liberation Mono', monospace;
+	background-color: rgba(110, 118, 129, 0.4);
+	padding: 0.2em 0.4em;
+	border-radius: 0.25rem;
+	font-size: 0.9em;
+}
+.markdown-content pre code {
+	background-color: transparent;
+	padding: 0;
+	border-radius: 0;
+	color: inherit;
+}
+.markdown-content blockquote {
+	border-left: 4px solid #6366f1;
+	padding-left: 1em;
+	color: #9ca3af;
+	margin: 1em 0;
+	background-color: rgba(99, 102, 241, 0.1);
+	padding: 0.5em 1em;
+	border-radius: 0 0.25rem 0.25rem 0;
+}
+.markdown-content ul {
+	list-style-type: disc;
+	padding-left: 1.5em;
+	margin: 1em 0;
+}
+.markdown-content ol {
+	list-style-type: decimal;
+	padding-left: 1.5em;
+	margin: 1em 0;
+}
+.markdown-content h1,
+.markdown-content h2,
+.markdown-content h3,
+.markdown-content h4 {
+	font-weight: 600;
+	margin-top: 1.5em;
+	margin-bottom: 0.5em;
+	color: #f3f4f6;
+	line-height: 1.25;
+}
+.markdown-content h1 {
+	font-size: 1.5em;
+	border-bottom: 1px solid #374151;
+	padding-bottom: 0.3em;
+}
+.markdown-content h2 {
+	font-size: 1.3em;
+	border-bottom: 1px solid #374151;
+	padding-bottom: 0.3em;
+}
+.markdown-content h3 {
+	font-size: 1.1em;
+}
+.markdown-content a {
+	color: #60a5fa;
+	text-decoration: none;
+}
+.markdown-content a:hover {
+	text-decoration: underline;
+}
+.markdown-content .mermaid {
+	background-color: transparent;
+	margin: 1em 0;
+	text-align: center;
+}
