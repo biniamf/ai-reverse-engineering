@@ -7,6 +7,10 @@
 <p align="center">
   Локальный анализ Ghidra, AI-чат, recovery drafts, карты символов и опциональный переводчик.
 </p>
+<p align="center">
+  <img src="https://img.shields.io/docker/pulls/dvurechensky/aireverse?style=flat-square)](https://hub.docker.com/r/dvurechensky/aireverse" alt="downloads">
+  <img src="https://img.shields.io/docker/image-size/dvurechensky/aireverse/latest?style=flat-square" alt="size">
+</p>
 
 [English](README.md) | [Русский](README.ru.md)
 
@@ -47,6 +51,13 @@ AI type/rename passes, переводчиком и современным Analys
 
 Полный список возможностей: [FEATURES.ru.md](FEATURES.ru.md). Сравнение со
 старой версией: [CHANGELOG.ru.md](CHANGELOG.ru.md).
+
+## Запуск в Docker
+
+```bash
+docker pull dvurechensky/aireverse
+docker run -p 5000:5000 dvurechensky/aireverse
+```
 
 ## Архитектура
 

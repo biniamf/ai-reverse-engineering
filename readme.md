@@ -8,6 +8,11 @@
   Local-first Ghidra analysis, AI chat, recovery drafts, symbol maps, and optional translation.
 </p>
 
+<p align="center">
+  <img src="https://img.shields.io/docker/pulls/dvurechensky/aireverse?style=flat-square)](https://hub.docker.com/r/dvurechensky/aireverse" alt="downloads">
+  <img src="https://img.shields.io/docker/image-size/dvurechensky/aireverse/latest?style=flat-square" alt="size">
+</p>
+
 [English](README.md) | [Русский](README.ru.md)
 
 ![alt text](demo/demo3.gif)
@@ -48,6 +53,13 @@ translation, and a modern analysis UI.
 
 See the full feature list in [FEATURES.md](FEATURES.md) and the old-to-new
 comparison in [CHANGELOG.md](CHANGELOG.md).
+
+## Run with Docker
+
+```bash
+docker pull dvurechensky/aireverse
+docker run -p 5000:5000 dvurechensky/aireverse
+```
 
 ## Architecture
 
