@@ -1,0 +1,52 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+*.pyd
+.Python
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+
+# Flask/runtime logs
+*.log
+flask*.log
+logs/*
+!logs/.gitkeep
+
+# Test, coverage, and tooling caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# Build/package output
+build/
+dist/
+*.egg-info/
+
+# Ghidra and generated analysis artifacts
+data/
+webui/chats/
+webui/recovery/
+webui/recovered/
+webui/deleted_jobs.json
+webui/settings/
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/

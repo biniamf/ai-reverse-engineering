@@ -1,0 +1,63 @@
+services:
+  aireverse:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: aireverse-web
+    ports:
+      - "${WEBUI_PORT:-5000}:5000"
+    environment:
+      FLASK_HOST: 0.0.0.0
+      FLASK_PORT: 5000
+      FLASK_DEBUG: "1"
+      AIREVERSE_LOG_DIR: /app/logs
+      GHIDRA_API_BASE: http://ghidra:9090
+
+      # Default local model path. On Docker Desktop and recent Linux Docker this
+      # reaches Ollama running on the host machine.
+      LLM_PROVIDER: ${LLM_PROVIDER:-ollama}
+      OLLAMA_API_BASE: ${OLLAMA_API_BASE:-http://host.docker.internal:11434/v1}
+      OLLAMA_API_KEY: ${OLLAMA_API_KEY:-ollama}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5-coder:14b}
+
+      # Hosted/custom providers remain available through .env overrides.
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-}
+      OPENAI_API_BASE: ${OPENAI_API_BASE:-https://api.openai.com/v1}
+      API_BASE: ${API_BASE:-}
+      API_KEY: ${API_KEY:-}
+      MODEL_NAME: ${MODEL_NAME:-}
+
+      # LibreTranslate is enabled by default in this compose stack.
+      TRANSLATOR_PROVIDER: ${TRANSLATOR_PROVIDER:-libretranslate}
+      LIBRETRANSLATE_API_BASE: ${LIBRETRANSLATE_API_BASE:-http://libretranslate:5000}
+      LIBRETRANSLATE_API_KEY: ${LIBRETRANSLATE_API_KEY:-}
+    volumes:
+      - ./data:/app/data
+      - ./webui/chats:/app/webui/chats
+      - ./webui/recovery:/app/webui/recovery
+      - ./webui/recovered:/app/webui/recovered
+      - ./webui/settings:/app/webui/settings
+      - ./logs:/app/logs
+    depends_on:
+      - ghidra
+      - libretranslate
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+
+  ghidra:
+    image: biniamfd/ghidra-headless-rest:latest
+    container_name: aireverse-ghidra
+    ports:
+      - "${GHIDRA_PORT:-9090}:9090"
+    volumes:
+      - ./data:/data/ghidra_projects
+    restart: unless-stopped
+
+  libretranslate:
+    image: dvurechensky/libretranslate-offline-ru-en-zh:latest
+    container_name: aireverse-libretranslate
+    ports:
+      - "${LIBRETRANSLATE_PORT:-5001}:5000"
+    restart: unless-stopped

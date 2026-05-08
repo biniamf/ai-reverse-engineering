@@ -1,9 +1,11 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Reverse Engineering AI Assistant</title>
+    <link rel="icon" href="/favicon.ico?v=3" sizes="any" type="image/x-icon">
+    <link rel="shortcut icon" href="/favicon.ico?v=3" type="image/x-icon">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
@@ -14,405 +16,295 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-
-    <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #0f1116;
-            color: #e5e7eb;
-        }
-        .panel {
-            background-color: #1a1d23;
-            border-radius: 0.5rem;
-        }
-        .chat-bubble-user {
-            background-color: #374151;
-        }
-        .chat-bubble-assistant {
-            background-color: #2d333b;
-        }
-        .sidebar {
-            background-color: #1a1d23;
-        }
-        input::placeholder, textarea::placeholder {
-            color: #9ca3af;
-        }
-        .markdown-content table {
-            border-collapse: collapse;
-            width: 100%;
-            margin: 1em 0;
-            font-size: 0.9em;
-        }
-        .markdown-content th, .markdown-content td {
-            border: 1px solid #4b5563;
-            padding: 0.5em;
-            text-align: left;
-        }
-        .markdown-content th {
-            background-color: #374151;
-            font-weight: 600;
-        }
-        .markdown-content tr:nth-child(even) {
-            background-color: rgba(255,255,255,0.02);
-        }
-        .markdown-content pre {
-            background-color: #161b22;
-            padding: 1em;
-            border-radius: 0.5rem;
-            overflow-x: auto;
-            margin: 1em 0;
-            border: 1px solid #30363d;
-        }
-        .markdown-content code {
-            font-family: 'ui-monospace', 'SFMono-Regular', 'SF Mono', 'Menlo', 'Consolas', 'Liberation Mono', monospace;
-            background-color: rgba(110, 118, 129, 0.4);
-            padding: 0.2em 0.4em;
-            border-radius: 0.25rem;
-            font-size: 0.9em;
-        }
-        .markdown-content pre code {
-            background-color: transparent;
-            padding: 0;
-            border-radius: 0;
-            color: inherit;
-        }
-        .markdown-content blockquote {
-            border-left: 4px solid #6366f1;
-            padding-left: 1em;
-            color: #9ca3af;
-            margin: 1em 0;
-            background-color: rgba(99, 102, 241, 0.1);
-            padding: 0.5em 1em;
-            border-radius: 0 0.25rem 0.25rem 0;
-        }
-        .markdown-content ul {
-            list-style-type: disc;
-            padding-left: 1.5em;
-            margin: 1em 0;
-        }
-        .markdown-content ol {
-            list-style-type: decimal;
-            padding-left: 1.5em;
-            margin: 1em 0;
-        }
-        .markdown-content h1, .markdown-content h2, .markdown-content h3, .markdown-content h4 {
-            font-weight: 600;
-            margin-top: 1.5em;
-            margin-bottom: 0.5em;
-            color: #f3f4f6;
-            line-height: 1.25;
-        }
-        .markdown-content h1 { font-size: 1.5em; border-bottom: 1px solid #374151; padding-bottom: 0.3em; }
-        .markdown-content h2 { font-size: 1.3em; border-bottom: 1px solid #374151; padding-bottom: 0.3em; }
-        .markdown-content h3 { font-size: 1.1em; }
-        .markdown-content a { color: #60a5fa; text-decoration: none; }
-        .markdown-content a:hover { text-decoration: underline; }
-        .markdown-content .mermaid { background-color: transparent; margin: 1em 0; text-align: center; }
-    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}?v=12">
 </head>
 <body class="flex h-screen">
 
-    <div class="w-1/4 sidebar flex flex-col p-5 border-r border-gray-700">
-        <h1 class="text-xl font-semibold mb-6 text-white">Reverse Engineering AI Assistant</h1>
+    <div class="w-1/4 min-w-[340px] max-w-[440px] sidebar flex flex-col p-5 border-r border-gray-700">
+        <div class="brand-lockup mb-6">
+            <img class="brand-icon" src="/media/icon.ico?v=3" alt="" aria-hidden="true">
+            <h1 class="app-title text-xl font-semibold text-white">Reverse Engineering AI Assistant</h1>
+        </div>
+        <div class="runtime-card mb-5 p-3 rounded-md text-xs text-gray-400">
+            <div class="flex items-center justify-between gap-2 mb-1">
+                <div class="text-gray-300 font-medium">Local runtime</div>
+                <button id="settings-open" type="button" class="settings-link">Settings</button>
+            </div>
+            <div>Provider: <span id="runtime-provider" class="font-mono text-blue-300">loading</span></div>
+            <div>Model: <span id="runtime-model" class="font-mono text-green-400">loading</span></div>
+            <div>LLM: <span id="runtime-llm" class="font-mono">loading</span></div>
+            <div>Ghidra: <span id="runtime-ghidra" class="font-mono">loading</span></div>
+            <div>Translator: <span id="runtime-translator" class="font-mono text-indigo-300">loading</span></div>
+        </div>
         <form id="upload-form" class="mb-6">
             <label for="file-input" class="block mb-2 text-sm font-medium text-gray-300">Upload Binary for Analysis</label>
-            <input type="file" id="file-input" class="block w-full text-sm text-gray-200 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-indigo-600 file:text-white hover:file:bg-indigo-700 cursor-pointer"/>
-            <button type="submit" class="w-full mt-3 bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-md transition">Analyze</button>
+            <input type="file" id="file-input" class="sr-only"/>
+            <div id="upload-dropzone" class="upload-dropzone p-4 cursor-pointer" tabindex="0" role="button" aria-label="Choose or drop a binary file">
+                <div class="flex items-start gap-3">
+                    <div class="upload-icon shrink-0">BIN</div>
+                    <div class="min-w-0 flex-1">
+                        <div id="dropzone-title" class="font-medium text-gray-100">Drop binary here</div>
+                        <div id="dropzone-subtitle" class="text-sm text-gray-500 mt-1">or choose a file from disk</div>
+                    </div>
+                </div>
+                <div id="selected-file-card" class="file-pill hidden mt-3 rounded-md p-3 text-sm">
+                    <div class="flex items-start justify-between gap-3">
+                        <div class="min-w-0">
+                            <div id="selected-file-name" class="font-mono text-green-300 truncate"></div>
+                            <div id="selected-file-meta" class="text-xs text-gray-500 mt-1"></div>
+                        </div>
+                        <button id="clear-file" type="button" class="ghost-button shrink-0 rounded px-2 py-1 text-xs text-gray-400">Clear</button>
+                    </div>
+                </div>
+                <button id="choose-file" type="button" class="ghost-button mt-3 w-full rounded-md px-3 py-2 text-sm text-gray-200">Choose File</button>
+            </div>
+            <button type="submit" id="analyze-button" class="primary-button w-full mt-3 text-white font-medium py-2.5 px-4 rounded-md">Analyze</button>
         </form>
-        <div id="upload-status" class="text-sm text-center mb-4 h-5"></div>
-        <h2 class="text-md font-semibold border-t border-gray-700 pt-4 text-gray-300">Analysis Jobs</h2>
+        <div id="upload-status" class="text-sm mb-4 min-h-5"></div>
+        <div class="border-t border-gray-700 pt-4 flex items-center justify-between gap-3">
+            <h2 class="text-md font-semibold text-gray-300">Analysis Jobs</h2>
+            <div id="jobs-sync-status" class="flex items-center gap-2 text-xs text-gray-500">
+                <span class="jobs-sync-dot"></span>
+                <span>loading</span>
+            </div>
+        </div>
         <div id="jobs-list" class="flex-grow overflow-y-auto mt-3 space-y-3"></div>
     </div>
 
-    <div class="w-3/4 flex flex-col h-screen">
-        <div id="welcome-message" class="flex-grow flex items-center justify-center">
-            <div class="text-center text-gray-500">
-                <h2 class="text-2xl font-semibold text-gray-300">Welcome</h2>
-                <p class="mt-2 text-sm">Upload a file and select a job to begin your analysis.</p>
+    <div class="flex-1 flex flex-col h-screen min-w-0">
+        <div id="welcome-message" class="cyber-welcome flex-grow flex items-center justify-center p-8">
+            <div class="hex-rain">
+                4D 5A 90 00 03 00 00 00 04 00 00 00 FF FF 00 00  B8 00 00 00 00 00 00 00 40 00 00 00 00 00 00 00
+                PE 00 00 4C 01 03 00 7A A1 44 65 00 00 00 00 00 00  .text .rdata .idata .reloc CALL JMP MOV EAX
+                55 8B EC 83 EC 10 53 56 57 8B F1 33 DB 39 5E 04  8B 45 08 50 E8 9A 04 00 00 83 C4 04 85 C0 74 12
+                IMPORT KERNEL32 USER32 MSVCRT GDI32 ADVAPI32 WS2_32  VTABLE THISCALL STDCALL XREF STRING STRUCT CLASS
+            </div>
+            <div class="cyber-card">
+                <div class="cyber-card-header flex items-center justify-between px-5 py-3">
+                    <div class="flex items-center gap-2">
+                        <span class="terminal-dot bg-red-400"></span>
+                        <span class="terminal-dot bg-yellow-400"></span>
+                        <span class="terminal-dot bg-green-400"></span>
+                    </div>
+                    <div class="font-mono text-xs text-gray-500">local reverse engineering console</div>
+                </div>
+                <div class="p-7">
+                    <div class="text-xs uppercase tracking-[0.28em] text-indigo-300">Awaiting Target</div>
+                    <h2 class="cyber-title mt-3 font-semibold text-white">Ready to Analyze</h2>
+                    <p class="mt-4 max-w-2xl text-gray-400">
+                        Drop a binary on the left or select an existing job to open chat, recovery drafts, and generated C/C++ artifacts.
+                    </p>
+                    <div class="pipeline-line my-6"></div>
+                    <div class="grid grid-cols-3 gap-3">
+                        <div class="cyber-metric rounded-md p-3">
+                            <div class="text-xs text-gray-500">Stage 01</div>
+                            <div class="mt-1 font-mono text-green-300">Ghidra ingest</div>
+                        </div>
+                        <div class="cyber-metric rounded-md p-3">
+                            <div class="text-xs text-gray-500">Stage 02</div>
+                            <div class="mt-1 font-mono text-indigo-300">AI tool loop</div>
+                        </div>
+                        <div class="cyber-metric rounded-md p-3">
+                            <div class="text-xs text-gray-500">Stage 03</div>
+                            <div class="mt-1 font-mono text-blue-300">C/C++ recovery</div>
+                        </div>
+                    </div>
+                    <div class="mt-5 grid grid-cols-2 gap-3 text-sm text-gray-500">
+                        <div class="rounded-md border border-gray-800 bg-gray-950/40 p-3">Upload `.exe`, `.dll`, ELF, Mach-O, or another native target supported by Ghidra.</div>
+                        <div class="rounded-md border border-gray-800 bg-gray-950/40 p-3">Use the Analysis tab after a job finishes to inspect recovered files with syntax highlighting.</div>
+                    </div>
+                </div>
             </div>
         </div>
-        <div id="chat-container" class="hidden flex-grow flex flex-col p-6 overflow-hidden">
-            <div id="chat-log" class="flex-grow overflow-y-auto mb-4 p-4 panel"></div>
-            <form id="chat-form" class="flex items-end">
-                <textarea id="chat-input" class="flex-grow bg-gray-800 rounded-l-md p-3 focus:outline-none resize-none text-gray-200" placeholder="Enter command..." rows="1" disabled></textarea>
-                <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-3 px-5 rounded-r-md transition self-stretch">Send</button>
+        <div id="workspace-tabs" class="hidden px-6 pt-4 border-b border-gray-800 gap-2">
+            <button type="button" data-view="chat" class="workspace-tab active text-sm text-gray-300 border border-transparent rounded-t-md px-4 py-2 hover:text-white">Chat</button>
+            <button type="button" data-view="analysis" class="workspace-tab text-sm text-gray-300 border border-transparent rounded-t-md px-4 py-2 hover:text-white">Analysis</button>
+        </div>
+        <div id="chat-container" class="hidden flex-grow flex flex-col p-6 overflow-hidden min-h-0">
+            <div class="chat-shell flex-grow flex flex-col overflow-hidden rounded-lg min-h-0">
+                <div class="chat-header flex items-center justify-between gap-4 px-4 py-3">
+                    <div class="min-w-0">
+                        <div class="text-sm font-semibold text-gray-100">AI Analysis Chat</div>
+                        <div class="text-xs text-gray-500">Job <span id="chat-job-label" class="font-mono text-indigo-300">not selected</span></div>
+                    </div>
+                    <div class="flex items-center gap-2 text-xs text-gray-500">
+                        <span class="h-2 w-2 rounded-full bg-green-400"></span>
+                        <span id="chat-provider-label">local model</span>
+                    </div>
+                </div>
+                <div id="chat-log" class="chat-log-surface flex-grow overflow-y-auto p-4"></div>
+            </div>
+            <div id="prompt-bar" class="hidden grid grid-cols-3 gap-2 mt-3"></div>
+            <form id="chat-form" class="chat-composer mt-3 flex items-end rounded-lg overflow-hidden">
+                <textarea id="chat-input" class="flex-grow p-3 focus:outline-none resize-none text-gray-200" placeholder="Ask about imports, strings, functions, or recovered C/C++..." rows="1" disabled></textarea>
+                <button type="submit" class="primary-button text-white font-medium py-3 px-5 self-stretch">Send</button>
+            </form>
+        </div>
+        <div id="recovery-panel" class="hidden flex-grow flex-col p-6 overflow-hidden min-h-0">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-xl font-semibold text-gray-200">Recovered Analysis</h2>
+                <div class="flex gap-2">
+                    <button id="recovery-build" type="button" class="text-sm bg-gray-700 hover:bg-gray-600 text-gray-200 px-3 py-2 rounded">Build</button>
+                    <button id="recovery-ai-types" type="button" class="text-sm bg-indigo-700 hover:bg-indigo-600 text-gray-100 px-3 py-2 rounded">AI Types</button>
+                    <button id="recovery-ai-renames" type="button" class="text-sm bg-indigo-700 hover:bg-indigo-600 text-gray-100 px-3 py-2 rounded">AI Rename</button>
+                </div>
+            </div>
+            <div id="recovery-status" class="text-sm text-gray-500 mb-3 h-5"></div>
+            <div id="recovery-busy-panel" class="busy-panel hidden rounded-md p-4 mb-4">
+                <div class="flex items-center gap-4">
+                    <div class="busy-orbit shrink-0"></div>
+                    <div class="min-w-0 flex-1">
+                        <div id="busy-title" class="font-semibold text-gray-100">Working</div>
+                        <div id="busy-subtitle" class="text-sm text-gray-400 mt-1">Preparing analysis pipeline...</div>
+                        <div class="busy-scan mt-3"></div>
+                    </div>
+                </div>
+                <div id="busy-log" class="grid grid-cols-2 gap-x-4 gap-y-1 mt-4"></div>
+            </div>
+            <div id="analysis-progress" class="analysis-progress-grid grid grid-cols-4 gap-3 mb-4"></div>
+            <div id="analysis-workspace" class="analysis-workspace flex-grow min-h-0">
+                <aside id="analysis-sidebar" class="analysis-sidebar overflow-y-auto pr-1">
+                    <div class="analysis-sidebar-head mb-3">
+                        <div>
+                            <div class="text-xs uppercase tracking-wide text-gray-500">Navigation</div>
+                            <div class="text-sm text-gray-300">Symbols and artifacts</div>
+                        </div>
+                        <button id="analysis-sidebar-toggle" type="button" class="toolbar-button" title="Collapse navigation">Hide</button>
+                    </div>
+                    <div id="recovery-summary" class="hidden text-sm text-gray-400 bg-gray-900 border border-gray-700 rounded p-3 mb-3"></div>
+                    <div id="symbol-navigator" class="symbol-navigator hidden rounded-md p-3 mb-3">
+                        <div class="flex items-center justify-between gap-3 mb-2">
+                            <div>
+                                <div class="text-sm font-semibold text-gray-200">Symbol Map</div>
+                                <div id="symbol-map-status" class="text-xs text-gray-500">Loading functions and renames...</div>
+                            </div>
+                            <div id="symbol-map-count" class="font-mono text-xs text-green-300">0/0</div>
+                        </div>
+                        <input id="symbol-search" class="symbol-search w-full rounded px-2 py-2 text-xs focus:outline-none" placeholder="Filter by name or address..." />
+                        <div id="symbol-filters" class="symbol-filters mt-2 grid grid-cols-5 gap-1">
+                            <button type="button" class="symbol-filter active" data-filter="all">All</button>
+                            <button type="button" class="symbol-filter" data-filter="draft">Draft</button>
+                            <button type="button" class="symbol-filter" data-filter="renamed">Renamed</button>
+                            <button type="button" class="symbol-filter" data-filter="raw">Raw</button>
+                            <button type="button" class="symbol-filter" data-filter="missing">Missing</button>
+                        </div>
+                        <div id="symbol-list" class="mt-2 space-y-2 max-h-72 overflow-y-auto pr-1"></div>
+                    </div>
+                    <div id="recovery-files" class="space-y-2 mb-2"></div>
+                </aside>
+                <div id="analysis-editor-region" class="analysis-editor-region flex flex-col min-w-0 min-h-0">
+                    <button id="analysis-sidebar-restore" type="button" class="analysis-restore-button hidden" title="Show navigation">Show navigator</button>
+                    <div id="recovery-file-info" class="hidden text-sm bg-gray-900 border border-gray-700 rounded p-3 mb-3"></div>
+                    <div id="function-inspector" class="function-inspector hidden"></div>
+                    <div id="recovery-preview" class="hidden flex-grow code-editor min-h-0"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="settings-modal" class="settings-modal hidden" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+        <div class="settings-dialog">
+            <div class="settings-header">
+                <div>
+                    <div id="settings-title" class="text-lg font-semibold text-gray-100">Runtime Settings</div>
+                    <div class="text-xs text-gray-500 mt-1">Switch AI provider and translator without editing Docker or shell variables.</div>
+                </div>
+                <button id="settings-close" type="button" class="toolbar-button">Close</button>
+            </div>
+            <form id="settings-form" class="settings-body">
+                <section class="settings-section">
+                    <div>
+                        <div class="settings-section-title">Appearance</div>
+                        <div class="settings-section-note">Theme tokens are modular, so more visual modes can be added without touching feature CSS.</div>
+                    </div>
+                    <div class="settings-grid">
+                        <label>Theme
+                            <select id="settings-theme" class="settings-input">
+                                <option value="dark">Dark</option>
+                                <option value="light">Light preview</option>
+                            </select>
+                        </label>
+                    </div>
+                </section>
+                <section class="settings-section">
+                    <div>
+                        <div class="settings-section-title">AI Provider</div>
+                        <div class="settings-section-note">OpenAI-compatible chat/completions endpoint used by Chat, AI Types, and AI Rename.</div>
+                    </div>
+                    <div class="settings-grid">
+                        <label>Provider
+                            <select id="settings-llm-provider" class="settings-input">
+                                <option value="ollama">Ollama</option>
+                                <option value="openai">OpenAI</option>
+                                <option value="custom">Custom OpenAI-compatible</option>
+                            </select>
+                        </label>
+                        <label>Model
+                            <input id="settings-llm-model" class="settings-input" placeholder="qwen2.5-coder:14b">
+                        </label>
+                        <label class="settings-span-2">API base
+                            <input id="settings-llm-api-base" class="settings-input" placeholder="http://localhost:11434/v1">
+                        </label>
+                        <label class="settings-span-2">API key
+                            <input id="settings-llm-api-key" class="settings-input" type="password" placeholder="Leave blank to keep current saved key">
+                        </label>
+                    </div>
+                </section>
+                <section class="settings-section">
+                    <div>
+                        <div class="settings-section-title">Translator</div>
+                        <div class="settings-section-note">LibreTranslate or any JSON HTTP translator proxy, including Google/DeepL gateways.</div>
+                    </div>
+                    <div class="settings-grid">
+                        <label>Provider
+                            <select id="settings-translator-provider" class="settings-input">
+                                <option value="off">Off</option>
+                                <option value="libretranslate">LibreTranslate</option>
+                                <option value="custom">Custom JSON API</option>
+                            </select>
+                        </label>
+                        <label>Endpoint
+                            <input id="settings-translator-endpoint" class="settings-input" placeholder="/translate">
+                        </label>
+                        <label class="settings-span-2">API base
+                            <input id="settings-translator-api-base" class="settings-input" placeholder="http://libretranslate:5000">
+                        </label>
+                        <label>Text field
+                            <input id="settings-translator-text-field" class="settings-input" placeholder="q">
+                        </label>
+                        <label>Result field
+                            <input id="settings-translator-result-field" class="settings-input" placeholder="translatedText">
+                        </label>
+                        <label>Source field
+                            <input id="settings-translator-source-field" class="settings-input" placeholder="source">
+                        </label>
+                        <label>Target field
+                            <input id="settings-translator-target-field" class="settings-input" placeholder="target">
+                        </label>
+                        <label class="settings-span-2">API key
+                            <input id="settings-translator-api-key" class="settings-input" type="password" placeholder="Leave blank to keep current saved key">
+                        </label>
+                        <label>Auth header
+                            <input id="settings-translator-auth-header" class="settings-input" placeholder="Authorization">
+                        </label>
+                        <label>Auth token
+                            <input id="settings-translator-auth-token" class="settings-input" type="password" placeholder="Bearer ...">
+                        </label>
+                    </div>
+                </section>
+                <div id="settings-status" class="settings-status"></div>
+                <div class="settings-footer">
+                    <button id="settings-reset-form" type="button" class="toolbar-button">Reload</button>
+                    <button type="submit" class="primary-button text-white font-medium px-4 py-2 rounded-md">Save Settings</button>
+                </div>
             </form>
         </div>
     </div>
 
-<script>
-$(document).ready(function() {
-    let currentJobId = null;
-    let jobStatusPollers = {};
-
-    mermaid.initialize({ startOnLoad: false, theme: 'dark' });
-
-    $.get('/jobs', function(data) {
-        if (Array.isArray(data)) {
-            data.forEach(job => {
-                renderJobItem(job);
-            });
-        }
-    });
-
-    function renderJobItem(job) {
-        const { job_id, status, filename, created_at } = job;
-        const name = filename || "Unknown Binary";
-        const dateStr = created_at ? new Date(created_at * 1000).toLocaleString() : "";
-        const newJobHtml = `
-            <div id="job-${job_id}" class="job-item p-3 bg-gray-800 hover:bg-gray-700 rounded-md cursor-pointer transition" data-job-id="${job_id}">
-                <div class="font-medium truncate text-gray-200">${name}</div>
-                <div class="text-xs text-gray-400">ID: ${job_id.substring(0,8)}... <span class="ml-2">${dateStr}</span></div>
-                <div class="text-xs text-yellow-400 font-mono job-status mt-1">${status.toUpperCase()}</div>
-            </div>`;
-        $('#jobs-list').append(newJobHtml);
-        const $status = $(`#job-${job_id} .job-status`);
-        if (status === 'done') $status.removeClass('text-yellow-400').addClass('text-green-400');
-        else if (status === 'failed') $status.removeClass('text-yellow-400').addClass('text-red-400');
-        else pollStatus(job_id);
-    }
-
-    function showUploadStatus(message, isError = false) {
-        $('#upload-status').text(message).toggleClass('text-red-400', isError).toggleClass('text-green-400', !isError);
-    }
-    function addChatMessage(role, message) {
-        const senderClass = role === 'user' ? 'chat-bubble-user' : 'chat-bubble-assistant';
-        const sanitizedMessage = $('<div/>').text(message).html();
-        $('#chat-log').append(`
-            <div class="mb-4">
-                <div class="p-3 rounded-md ${senderClass}">${sanitizedMessage}</div>
-            </div>
-        `);
-        $('#chat-log').scrollTop($('#chat-log')[0].scrollHeight);
-    }
-    function addShimmerPlaceholder() {
-        const placeholderId = `shimmer-${Date.now()}`;
-        $('#chat-log').append(`
-            <div id="${placeholderId}" class="mb-4">
-                <div class="p-3 rounded-md chat-bubble-assistant space-y-3">
-                    <div class="h-4 w-5/6 rounded bg-gray-700 animate-pulse"></div>
-                    <div class="h-4 w-full rounded bg-gray-700 animate-pulse"></div>
-                    <div class="h-4 w-3/4 rounded bg-gray-700 animate-pulse"></div>
-                </div>
-            </div>
-        `);
-        $('#chat-log').scrollTop($('#chat-log')[0].scrollHeight);
-        return placeholderId;
-    }
-    function pollStatus(jobId) {
-        if (jobStatusPollers[jobId]) return;
-        jobStatusPollers[jobId] = setInterval(async () => {
-            try {
-                const response = await fetch(`/status/${jobId}`);
-                if (!response.ok) throw new Error('Network response was not ok');
-                const data = await response.json();
-                const status = data.status || 'unknown';
-                const $jobItem = $(`#job-${jobId} .job-status`);
-                $jobItem.text(status.toUpperCase());
-                if (status === 'done') {
-                    $jobItem.removeClass('text-yellow-400').addClass('text-green-400');
-                    clearInterval(jobStatusPollers[jobId]);
-                    delete jobStatusPollers[jobId];
-                } else if (status === 'failed') {
-                    $jobItem.removeClass('text-yellow-400').addClass('text-red-400');
-                    clearInterval(jobStatusPollers[jobId]);
-                    delete jobStatusPollers[jobId];
-                }
-            } catch (error) {
-                console.error("Polling error:", error);
-                const $jobItem = $(`#job-${jobId} .job-status`);
-                $jobItem.text('ERROR').addClass('text-red-400');
-                clearInterval(jobStatusPollers[jobId]);
-                delete jobStatusPollers[jobId];
-            }
-        }, 3000);
-    }
-
-    function renderMessage(role, content) {
-        if (role === 'tool' || role === 'system') return;
-        let html = '';
-        if (role === 'user') {
-            html = `
-                <div class="flex justify-end mb-4">
-                    <div class="bg-blue-600 text-white p-3 rounded-lg rounded-br-none max-w-[80%]">
-                        ${content}
-                    </div>
-                </div>`;
-        } else if (role === 'assistant') {
-            html = `
-                <div class="flex justify-start mb-4">
-                    <div class="bg-gray-700 text-gray-200 p-3 rounded-lg rounded-bl-none max-w-[80%] markdown-content">
-                        ${marked.parse(content)}
-                    </div>
-                </div>`;
-        }
-        const $msg = $(html);
-        $('#chat-log').append($msg);
-        $msg.find('code.language-mermaid').each(function(index) {
-            const $code = $(this);
-            const graphDef = $code.text();
-            const $pre = $code.parent();
-            const uniqueId = `mermaid-hist-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-            $pre.replaceWith(`<div class="mermaid" id="${uniqueId}">${graphDef}</div>`);
-            try {
-                mermaid.run({ nodes: document.querySelectorAll(`#${uniqueId}`) });
-            } catch(e) { console.error("Mermaid error", e); }
-        });
-        $msg.find('pre code').each(function(i, block) {
-            hljs.highlightElement(block);
-        });
-        $('#chat-log').scrollTop($('#chat-log')[0].scrollHeight);
-    }
-
-    function loadJob(jobId) {
-        currentJobId = jobId;
-        $('#chat-log').empty();
-        $('#welcome-message').hide();
-        $('#chat-container').removeClass('hidden').addClass('flex');
-        $('.job-item').removeClass('bg-gray-700');
-        $(`#job-${jobId}`).addClass('bg-gray-700');
-        $('#chat-input, #chat-form button').prop('disabled', false);
-        $('#chat-input').focus();
-        $.get(`/chat/history/${jobId}`, function(history) {
-            if (Array.isArray(history)) {
-                history.forEach(msg => {
-                    renderMessage(msg.role, msg.content);
-                });
-            }
-            renderMessage('assistant', `Connected to job ${currentJobId}. Awaiting command...`);
-        });
-    }
-
-    $('#upload-form').on('submit', function(e) {
-        e.preventDefault();
-        const fileInput = $('#file-input')[0];
-        if (fileInput.files.length === 0) {
-            showUploadStatus('ERROR: No file selected.', true);
-            return;
-        }
-        const formData = new FormData();
-        formData.append('file', fileInput.files[0]);
-        showUploadStatus('Analyzing...', false);
-        $.ajax({
-            url: '/upload',
-            type: 'POST',
-            data: formData,
-            processData: false,
-            contentType: false,
-            success: function(data) {
-                if (data.error) {
-                    showUploadStatus(`ERROR: ${data.error}`, true);
-                    return;
-                }
-                showUploadStatus('Analysis started!', false);
-                const { job_id, status } = data;
-                const filename = fileInput.files[0].name;
-                const newJobHtml = `
-                    <div id="job-${job_id}" class="job-item p-3 bg-gray-800 hover:bg-gray-700 rounded-md cursor-pointer transition" data-job-id="${job_id}">
-                        <div class="font-medium truncate text-gray-200">${filename}</div>
-                        <div class="text-xs text-gray-400">ID: ${job_id.substring(0,8)}...</div>
-                        <div class="text-xs text-yellow-400 font-mono job-status mt-1">${status.toUpperCase()}</div>
-                    </div>`;
-                $('#jobs-list').prepend(newJobHtml);
-                pollStatus(job_id);
-            },
-            error: function(xhr) {
-                const error = xhr.responseJSON ? xhr.responseJSON.error : 'Unknown error.';
-                showUploadStatus(`UPLOAD FAILED: ${error}`, true);
-            }
-        });
-    });
-    $('#jobs-list').on('click', '.job-item', function() {
-        const jobId = $(this).data('job-id');
-        loadJob(jobId);
-    });
-    $('#chat-input').on('keydown', function(e) {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            $('#chat-form').submit();
-        }
-    }).on('input', function() {
-        this.style.height = 'auto';
-        this.style.height = (this.scrollHeight) + 'px';
-    });
-    $('#chat-form').on('submit', function(e) {
-        e.preventDefault();
-        const $chatInput = $('#chat-input');
-        const message = $chatInput.val().trim();
-        if (!message || !currentJobId) return;
-        addChatMessage('user', message);
-        $chatInput.val('').trigger('input');
-        $('#chat-input, #chat-form button').prop('disabled', true);
-        const placeholderId = addShimmerPlaceholder();
-        const $placeholder = $(`#${placeholderId}`);
-        const $responseContainer = $placeholder.find('.p-3');
-
-        let fullResponse = "";
-        let toolCallsHtml = "";
-        fetch('/chat', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ message: message, job_id: currentJobId })
-        })
-        .then(response => {
-            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-            const reader = response.body.getReader();
-            const decoder = new TextDecoder();
-            $responseContainer.html('<div class="markdown-content"></div><div class="tool-calls"></div>');
-            function read() {
-                reader.read().then(({ done, value }) => {
-                    if (done) {
-                        $('#chat-input, #chat-form button').prop('disabled', false);
-                        $('#chat-input').focus();
-                        return;
-                    }
-                    const chunk = decoder.decode(value, {stream: true});
-                    const lines = chunk.split('\n\n').filter(line => line.trim());
-                    lines.forEach(line => {
-                        if (line.startsWith('data: ')) {
-                            try {
-                                const data = JSON.parse(line.substring(6));
-                                if (data.type === 'token') {
-                                    fullResponse += data.content;
-                                    const $content = $responseContainer.find('.markdown-content');
-                                    $content.html(marked.parse(fullResponse));
-                                    $content.find('code.language-mermaid').each(function(index) {
-                                        const $code = $(this);
-                                        const graphDef = $code.text();
-                                        const $pre = $code.parent();
-                                        const uniqueId = `mermaid-${Date.now()}-${index}`;
-                                        $pre.replaceWith(`<div class="mermaid" id="${uniqueId}">${graphDef}</div>`);
-                                        try {
-                                           mermaid.run({ nodes: document.querySelectorAll(`#${uniqueId}`) });
-                                        } catch(e) { console.error("Mermaid error", e); }
-                                    });
-                                    $content.find('pre code').each(function(i, block) {
-                                        hljs.highlightElement(block);
-                                    });
-                                } else if (data.type === 'tool_call') {
-                                    toolCallsHtml += `<li>${data.description}</li>`;
-                                    $responseContainer.find('.tool-calls').html(`<div class="text-xs text-gray-400 mt-2 bg-gray-900 p-2 rounded border border-gray-700"><strong>SYSTEM LOG:</strong><ul>${toolCallsHtml}</ul></div>`);
-                                } else if (data.type === 'error') {
-                                    $responseContainer.html(`<div class="text-red-400">ERROR: ${data.content}</div>`);
-                                }
-                            } catch (e) {
-                                console.error("Error parsing stream data:", e, "Data:", line);
-                            }
-                        }
-                    });
-                    $('#chat-log').scrollTop($('#chat-log')[0].scrollHeight);
-                    read();
-                });
-            }
-            read();
-        }).catch(err => {
-            console.error("Fetch stream error:", err);
-            $responseContainer.html(`<div class="text-red-400">FATAL ERROR: Connection to assistant failed.</div>`);
-            $('#chat-input, #chat-form button').prop('disabled', false);
-        });
-    });
-});
-</script>
+<script src="{{ url_for('static', filename='js/modules/core.js') }}?v=12"></script>
+<script src="{{ url_for('static', filename='js/modules/theme.js') }}?v=12"></script>
+<script src="{{ url_for('static', filename='js/modules/translation.js') }}?v=12"></script>
+<script src="{{ url_for('static', filename='js/app.js') }}?v=12"></script>
 
 </body>
 </html>

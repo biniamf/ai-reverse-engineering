@@ -1,0 +1,91 @@
+﻿.upload-dropzone {
+	position: relative;
+	overflow: hidden;
+	border: 1px dashed #475569;
+	border-radius: var(--radius);
+	background:
+		radial-gradient(
+			circle at 18% 0%,
+			rgba(99, 102, 241, 0.14),
+			transparent 34%
+		),
+		linear-gradient(180deg, rgba(15, 23, 42, 0.88), rgba(15, 23, 42, 0.58));
+	transition:
+		border-color 0.16s ease,
+		background 0.16s ease,
+		box-shadow 0.16s ease,
+		transform 0.16s ease;
+}
+.upload-dropzone::after {
+	content: '';
+	position: absolute;
+	inset: 0;
+	pointer-events: none;
+	opacity: 0;
+	background: linear-gradient(
+		90deg,
+		transparent,
+		rgba(129, 140, 248, 0.16),
+		transparent
+	);
+	transform: translateX(-100%);
+}
+.upload-dropzone.drag-over {
+	border-color: var(--accent-strong);
+	background:
+		radial-gradient(
+			circle at 18% 0%,
+			rgba(129, 140, 248, 0.22),
+			transparent 38%
+		),
+		linear-gradient(180deg, rgba(30, 41, 59, 0.96), rgba(15, 23, 42, 0.74));
+	box-shadow:
+		0 0 0 3px rgba(129, 140, 248, 0.14),
+		0 18px 42px rgba(0, 0, 0, 0.18);
+	transform: translateY(-1px);
+}
+.upload-dropzone:focus-visible,
+.ghost-button:focus-visible,
+.primary-button:focus-visible {
+	outline: 2px solid var(--accent-strong);
+	outline-offset: 2px;
+}
+.upload-dropzone.drag-over::after {
+	opacity: 1;
+	animation: busy-scan 1.15s ease-in-out infinite;
+}
+.upload-dropzone.has-file {
+	border-style: solid;
+	border-color: rgba(34, 197, 94, 0.48);
+	background:
+		radial-gradient(circle at 18% 0%, rgba(34, 197, 94, 0.12), transparent 38%),
+		linear-gradient(180deg, rgba(15, 23, 42, 0.92), rgba(15, 23, 42, 0.68));
+}
+.upload-icon {
+	display: grid;
+	width: 2.35rem;
+	height: 2.35rem;
+	place-items: center;
+	border-radius: 0.5rem;
+	background: rgba(79, 70, 229, 0.18);
+	border: 1px solid rgba(129, 140, 248, 0.34);
+	color: #c7d2fe;
+	font-weight: 700;
+}
+.file-pill {
+	border: 1px solid rgba(51, 65, 85, 0.9);
+	background: rgba(15, 23, 42, 0.72);
+}
+.ghost-button {
+	border: 1px solid rgba(51, 65, 85, 0.9);
+	background: rgba(15, 23, 42, 0.52);
+	transition:
+		border-color 0.16s ease,
+		background 0.16s ease,
+		color 0.16s ease;
+}
+.ghost-button:hover {
+	border-color: rgba(129, 140, 248, 0.55);
+	background: rgba(30, 41, 59, 0.72);
+	color: #fff;
+}

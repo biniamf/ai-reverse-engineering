@@ -1,0 +1,17 @@
+﻿:root,
+[data-theme="dark"] {
+    --bg-app: #0b0f16;
+    --bg-sidebar: #171c24;
+    --bg-panel: #1d2531;
+    --bg-panel-soft: #111827;
+    --border-subtle: #334155;
+    --text-main: #e5e7eb;
+    --text-muted: #94a3b8;
+    --accent: #4f46e5;
+    --accent-hover: #5b52f0;
+    --accent-strong: #818cf8;
+    --success: #22c55e;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+    --radius: 0.5rem;
+}

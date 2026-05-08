@@ -1,0 +1,16 @@
+﻿[data-theme="light"] {
+    --bg-app: #f8fafc;
+    --bg-sidebar: #eef2f7;
+    --bg-panel: #ffffff;
+    --bg-panel-soft: #f1f5f9;
+    --border-subtle: #cbd5e1;
+    --text-main: #0f172a;
+    --text-muted: #475569;
+    --accent: #4f46e5;
+    --accent-hover: #4338ca;
+    --accent-strong: #6366f1;
+    --success: #16a34a;
+    --warning: #d97706;
+    --danger: #dc2626;
+    --radius: 0.5rem;
+}
