@@ -87,16 +87,16 @@ class GhidraAssistant:
     def chat_completion_stream(self, user_message: str, job_id: str) -> Generator[str, None, None]:
         history = self.load_history(job_id)
 
-        if not history:
-            history.append({"role": "system", "content": SYSTEM_PROMPT})
-
-        if history[0]["role"] != "system":
+        if not history or history[0].get("role") != "system":
             history.insert(0, {"role": "system", "content": SYSTEM_PROMPT})
 
         history.append({"role": "user", "content": f"[Job ID: {job_id}] {user_message}"})
         messages = history
 
-        for i in range(MAX_AGENT_TURNS):
+        finalized = False
+        complete_response_content = ""
+
+        for _ in range(MAX_AGENT_TURNS):
             try:
                 first_response = self.client.chat.completions.create(
                     model=self.model,
@@ -113,47 +113,56 @@ class GhidraAssistant:
 
             if not message.tool_calls:
                 if message.content:
+                    complete_response_content = message.content
                     yield json.dumps({"type": "token", "content": message.content})
+                finalized = True
                 break
 
             for tool_call in message.tool_calls:
                 function_name = tool_call.function.name
-                if function_name in self.available_tools:
-                    intent_description = TOOL_INTENT_DESCRIPTIONS.get(function_name, f"Executing tool: {function_name}...")
-                    yield json.dumps({"type": "tool_call", "description": intent_description})
+                if function_name not in self.available_tools:
+                    continue
 
-                    function_to_call = self.available_tools[function_name]
-                    try:
-                        args = json.loads(tool_call.function.arguments)
-                    except Exception:
-                        args = {}
+                intent_description = TOOL_INTENT_DESCRIPTIONS.get(function_name, f"Executing tool: {function_name}...")
+                yield json.dumps({"type": "tool_call", "description": intent_description})
 
-                    args['job_id'] = job_id
+                function_to_call = self.available_tools[function_name]
+                try:
+                    args = json.loads(tool_call.function.arguments)
+                except Exception:
+                    args = {}
 
-                    result = function_to_call(**args)
+                args['job_id'] = job_id
 
-                    messages.append({
-                        "tool_call_id": tool_call.id,
-                        "role": "tool",
-                        "name": function_name,
-                        "content": json.dumps(result)
-                    })
+                result = function_to_call(**args)
 
-        complete_response_content = ""
+                messages.append({
+                    "tool_call_id": tool_call.id,
+                    "role": "tool",
+                    "name": function_name,
+                    "content": json.dumps(result)
+                })
 
-        stream = self.client.chat.completions.create(
-            model=self.model,
-            messages=messages,
-            stream=True
-        )
+        # Only stream a final answer if the agent loop exhausted MAX_AGENT_TURNS
+        # without producing one. Otherwise we'd call the LLM a second time and
+        # emit the same response twice (doubling token cost and duplicating UI).
+        if not finalized:
+            try:
+                stream = self.client.chat.completions.create(
+                    model=self.model,
+                    messages=messages,
+                    stream=True
+                )
+                for chunk in stream:
+                    content = chunk.choices[0].delta.content
+                    if content:
+                        complete_response_content += content
+                        yield json.dumps({"type": "token", "content": content})
+            except Exception as e:
+                yield json.dumps({"type": "error", "content": f"LLM Error: {str(e)}"})
+                return
 
-        for chunk in stream:
-            content = chunk.choices[0].delta.content
-            if content:
-                complete_response_content += content
-                yield json.dumps({"type": "token", "content": content})
-
-        messages.append({"role": "assistant", "content": complete_response_content})
+            messages.append({"role": "assistant", "content": complete_response_content})
 
         serializable_history = []
         for m in messages:
