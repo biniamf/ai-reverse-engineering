@@ -51,6 +51,24 @@ def _norm_query(value: Any) -> str:
     return validate_query(value)
 
 
+# Sentinel query fragments a model emits when it means "everything" -- treat
+# them as no filter so an enumeration slip lists functions instead of matching
+# nothing. Anything else is validated as a normal search string.
+_WILDCARD_QUERIES = {"*", "%", ".*", "0x", "0X", "0", "all", "any"}
+
+
+def _norm_functions_query(value: Any) -> Optional[str]:
+    # An empty/whitespace or wildcard query means "list all" -- return None (no
+    # filter) instead of erroring, so an enumeration slip lists rather than
+    # failing. A concrete name/address is validated as a normal search string.
+    if value is None or (isinstance(value, str) and not value.strip()):
+        return None
+    text = validate_query(value)
+    if text.strip().lower() in _WILDCARD_QUERIES:
+        return None
+    return text
+
+
 def _make_int_normalizer(minimum: int, maximum: int):
     def _norm(value: Any) -> int:
         if isinstance(value, bool):
@@ -312,12 +330,14 @@ REGISTRY: Dict[str, ToolSpec] = {
         endpoint="list_functions",
         kind="functions",
         description=(
-            "List or globally search discovered functions for the active job. "
-            "When the analyst gives a name or address, pass it as query: the "
-            "service matches the COMPLETE program before pagination and returns "
-            "the canonical function entry address. Use this exact-address lookup "
-            "before decompile_function/get_xrefs; do not use query_artifacts for "
-            "address resolution because suffix matches can select another function."
+            "List discovered functions for the active job, or resolve one by "
+            "name/address. To LIST all functions, omit query entirely (use "
+            "offset/limit to page). Only set query for a concrete function name "
+            "or a full address such as 0x101165; the service then matches the "
+            "COMPLETE program before pagination and returns the canonical entry "
+            "address. Never pass a wildcard or placeholder (no '*', no bare '0x'): "
+            "to enumerate, simply omit query. Prefer this exact-address lookup "
+            "over query_artifacts, whose suffix matches can select another function."
         ),
         rationale="Listing or resolving functions in the binary.",
         max_result_chars=20000,
@@ -327,10 +347,10 @@ REGISTRY: Dict[str, ToolSpec] = {
                 name="query",
                 json_type="string",
                 description=(
-                    "Optional global function name or address query, e.g. "
-                    "0x2c7c0. Matches across all pages before pagination."
+                    "Optional exact function name or full address (e.g. 0x101165). "
+                    "Omit to list all functions; never pass '*' or a bare '0x'."
                 ),
-                normalizer=_norm_query,
+                normalizer=_norm_functions_query,
             )
         ],
     ),

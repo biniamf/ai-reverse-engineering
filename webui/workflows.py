@@ -40,10 +40,11 @@ WORKFLOWS: Dict[str, Workflow] = {
         prompt=(
             "Perform a bounded program triage of the active job. Start with "
             "get_program_summary, then inspect one bounded page each of imports, "
-            "high-signal strings, and notable functions. Summarize the likely "
-            "purpose and analysis coverage, citing concrete function addresses "
-            "and strings. Do not page through the whole program or speculate "
-            "beyond retrieved evidence."
+            "high-signal strings, and functions. To enumerate functions, call "
+            "list_functions WITHOUT a query (just offset/limit); only pass a query "
+            "to resolve one specific name/address. Summarize the likely purpose and "
+            "analysis coverage, citing concrete function addresses and strings. Do "
+            "not page through the whole program or speculate beyond retrieved evidence."
         ),
         scope="Active job (whole program), read-only.",
         default_budget=6,
