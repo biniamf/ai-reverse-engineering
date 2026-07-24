@@ -11,7 +11,8 @@ app; the app proxies validated, typed requests to the Ghidra service.
 
 ## Demo
 
-https://github.com/user-attachments/assets/77f1645a-cd8e-470f-826b-585a73e48bf4
+https://github.com/user-attachments/assets/8ad761b2-75e8-4247-9a7a-a2ed0ed2eeff
+
 
 ## Quick Start (Docker)
 
