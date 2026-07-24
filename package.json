@@ -1,0 +1,17 @@
+{
+  "name": "revdeck-mermaid-vendor",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Reproducible vendoring for Rev·Deck's sandboxed Mermaid renderer. The pinned runtime is copied into webui/static/vendor/mermaid and integrity-checked against its SHA-256 manifest.",
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "vendor": "node scripts/vendor-mermaid.mjs",
+    "vendor:verify": "node scripts/vendor-mermaid.mjs --verify"
+  },
+  "dependencies": {
+    "mermaid": "11.16.0"
+  }
+}

@@ -1,0 +1,249 @@
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: var(--fs-base);
+  line-height: var(--lh-body);
+  color: var(--c-ink);
+  background-color: var(--c-bg);
+  background-image:
+    radial-gradient(
+      120% 80% at 82% -10%,
+      var(--c-amber-glow),
+      transparent 55%
+    ),
+    linear-gradient(var(--c-rule) 1px, transparent 1px),
+    linear-gradient(90deg, var(--c-rule) 1px, transparent 1px);
+  background-size: 100% 100%, 44px 44px, 44px 44px;
+  background-blend-mode: normal, soft-light, soft-light;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+.app {
+  display: grid;
+  grid-template-columns: var(--rail-w) 1fr;
+  grid-template-rows: var(--header-h) 1fr;
+  grid-template-areas:
+    "header header"
+    "rail   workspace";
+  height: 100vh;
+  height: 100dvh;
+}
+
+.masthead {
+  grid-area: header;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+  padding: 0 var(--sp-4);
+  border-bottom: var(--border-w) solid var(--c-rule-strong);
+  background:
+    linear-gradient(180deg, var(--c-panel), var(--c-void));
+}
+
+.rail {
+  grid-area: rail;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-right: var(--border-w) solid var(--c-rule-strong);
+  background: linear-gradient(180deg, var(--c-panel), var(--c-bg) 60%);
+}
+
+.rail__scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--sp-2) var(--sp-3) var(--sp-4);
+}
+
+.workspace {
+  grid-area: workspace;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.tabbar {
+  display: flex;
+  align-items: stretch;
+  height: var(--tabbar-h);
+  flex: 0 0 auto;
+  border-bottom: var(--border-w) solid var(--c-rule-strong);
+  background: var(--c-void);
+}
+
+/* Author-level display rules can override the browser's built-in [hidden]
+   stylesheet. Keep hidden UI states authoritative across every component. */
+[hidden] {
+  display: none !important;
+}
+
+.tabpanels {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+}
+
+.tabpanel {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  display: none;
+  flex-direction: column;
+}
+
+.tabpanel[data-active="true"] {
+  display: flex;
+}
+
+.chat {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1 1 auto;
+}
+
+.chat__log {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--sp-4) clamp(var(--sp-3), 2vw, var(--sp-5)) var(--sp-6);
+  scroll-behavior: smooth;
+}
+
+.chat__composer {
+  flex: 0 0 auto;
+  border-top: var(--border-w) solid var(--c-rule-strong);
+  background: linear-gradient(180deg, var(--c-bg), var(--c-void));
+  padding: var(--sp-3) var(--sp-4) var(--sp-4);
+}
+
+/* Two modes, switched by the data-detail attribute the controller owns: - data-
+ * detail="closed" (default): a single column. */
+.analysis {
+  display: grid;
+  grid-template-columns: 1fr;
+  min-height: 0;
+  flex: 1 1 auto;
+}
+
+.analysis[data-detail="open"] {
+  grid-template-columns: minmax(420px, 44%) minmax(420px, 1fr);
+}
+
+.analysis__nav {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  border-right: var(--border-w) solid var(--c-rule-strong);
+  background: var(--c-panel);
+}
+
+.analysis__detail {
+  display: none;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+}
+
+.analysis[data-detail="open"] .analysis__detail {
+  display: flex;
+}
+
+.analysis__list {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+}
+
+@media (max-width: 1200px) {
+  .analysis[data-detail="open"] {
+    grid-template-columns: minmax(320px, 38%) minmax(360px, 1fr);
+  }
+}
+
+/* Small/mobile: never try to hold two panes in the workspace width. The browse
+ * column stacks full width; when a selection is open the inspector overlays the
+ * whole workspace (single visible pane at a time) rather than compressing the
+ * split into two unreadable columns. */
+@media (max-width: 900px) {
+  .app {
+    grid-template-columns: 1fr;
+    grid-template-rows: var(--header-h) auto 1fr;
+    grid-template-areas:
+      "header"
+      "rail"
+      "workspace";
+  }
+  .rail {
+    border-right: none;
+    border-bottom: var(--border-w) solid var(--c-rule-strong);
+    max-height: 34vh;
+  }
+  .analysis,
+  .analysis[data-detail="open"] {
+    grid-template-columns: 1fr;
+    grid-auto-rows: minmax(0, 1fr);
+  }
+  .analysis__nav {
+    border-right: none;
+    min-height: 0;
+  }
+  /* Single-pane overlay: the open inspector covers the browse column so the
+     analyst sees exactly one full-width pane, never a cramped two-up. */
+  .analysis[data-detail="open"] .analysis__detail {
+    position: absolute;
+    inset: 0;
+    z-index: 4;
+    background: var(--c-bg);
+    border-left: none;
+  }
+  .analysis {
+    position: relative;
+  }
+}
+
+.skip-link {
+  position: absolute;
+  left: var(--sp-3);
+  top: -60px;
+  z-index: 50;
+  padding: var(--sp-2) var(--sp-3);
+  background: var(--c-amber);
+  color: var(--c-void);
+  border-radius: var(--radius-sm);
+  transition: top var(--dur) var(--ease);
+}
+.skip-link:focus {
+  top: var(--sp-2);
+}
+
+.visually-hidden {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

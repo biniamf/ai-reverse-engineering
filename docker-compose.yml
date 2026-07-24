@@ -1,0 +1,97 @@
+# Biniam Demissie
+# Phase 7: local, single-user deployment. Both services publish ONLY to
+# 127.0.0.1, debug is off, the web root filesystem is read-only with explicit
+# writable mounts, and resource/security limits are set.
+#
+# The public Ghidra service image is configured by GHIDRA_IMAGE in .env.
+# The default pins the tested 1.2.1 release by its immutable registry digest.
+services:
+  ghidra:
+    image: ${GHIDRA_IMAGE:-biniamfd/ghidra-headless-rest:1.2.1@sha256:971591a3a8448d8ed969079b452306e806f36079c3ddd298f4a618d6e2f1442d}
+    restart: unless-stopped
+    ports:
+      # Loopback only. The browser never talks to Ghidra directly, but exposing
+      # it locally aids debugging; drop this block for full isolation.
+      - "127.0.0.1:9090:9090"
+    volumes:
+      - ./data/ghidra_projects:/data/ghidra_projects
+    environment:
+      # Wall-clock cap for one headless analysis. Large 10k+ function binaries
+      # may need a higher value (the default tested local value is 30 minutes).
+      ANALYSIS_TIMEOUT: "${ANALYSIS_TIMEOUT:-1800}"
+      DECOMPILE_TIMEOUT: "${DECOMPILE_TIMEOUT:-30}"
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 4g
+    pids_limit: 512
+
+  web:
+    build:
+      context: .
+      dockerfile: webui/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      - ghidra
+    environment:
+      # Container-internal endpoints and writable paths are fixed.
+      GHIDRA_API_BASE: "http://ghidra:9090"
+      CHATS_DIR: "/data/chats"
+      LOG_FILE: "/var/log/revdeck/web.log"
+      HOST: "0.0.0.0"
+      PORT: "5000"
+      DEBUG: "false"
+      GUNICORN_BIND: "0.0.0.0:5000"
+
+      # LLM provider. API_KEY remains optional for local/keyless endpoints.
+      API_BASE: "${API_BASE:?set API_BASE in .env}"
+      API_KEY: "${API_KEY:-not-used}"
+      MODEL_NAME: "${MODEL_NAME:?set MODEL_NAME in .env}"
+      LLM_STREAM: "${LLM_STREAM:-auto}"
+
+      CONNECT_TIMEOUT: "${CONNECT_TIMEOUT:-5}"
+      READ_TIMEOUT: "${READ_TIMEOUT:-30}"
+      LLM_TIMEOUT: "${LLM_TIMEOUT:-60}"
+
+      MAX_UPLOAD_BYTES: "${MAX_UPLOAD_BYTES:-104857600}"
+      MAX_RESPONSE_BYTES: "${MAX_RESPONSE_BYTES:-26214400}"
+      MAX_TOOL_RESULT_CHARS: "${MAX_TOOL_RESULT_CHARS:-20000}"
+      MAX_CONTEXT_CHARS: "${MAX_CONTEXT_CHARS:-100000}"
+      MAX_AGENT_TURNS: "${MAX_AGENT_TURNS:-5}"
+      MAX_AUTONOMOUS_STEPS: "${MAX_AUTONOMOUS_STEPS:-12}"
+
+      SUMMARY_CACHE_TTL: "${SUMMARY_CACHE_TTL:-300}"
+      SUMMARY_CACHE_MAX_ENTRIES: "${SUMMARY_CACHE_MAX_ENTRIES:-128}"
+
+      LOG_LEVEL: "${LOG_LEVEL:-INFO}"
+      LOG_MAX_BYTES: "${LOG_MAX_BYTES:-5242880}"
+      LOG_BACKUP_COUNT: "${LOG_BACKUP_COUNT:-3}"
+
+      GUNICORN_WORKERS: "${GUNICORN_WORKERS:-2}"
+      GUNICORN_THREADS: "${GUNICORN_THREADS:-4}"
+      GUNICORN_TIMEOUT: "${GUNICORN_TIMEOUT:-120}"
+      GUNICORN_GRACEFUL_TIMEOUT: "${GUNICORN_GRACEFUL_TIMEOUT:-30}"
+      GUNICORN_KEEPALIVE: "${GUNICORN_KEEPALIVE:-5}"
+
+      # Empty uses the deterministic content hash computed at startup.
+      APP_VERSION: "${APP_VERSION:-}"
+    ports:
+      # Loopback only -- this is a local single-user workstation, not a service.
+      - "127.0.0.1:5000:5000"
+    volumes:
+      - ./data/chats:/data/chats
+      - ./data/logs:/var/log/revdeck
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    mem_limit: 1g
+    pids_limit: 256
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:5000/healthz', timeout=3).status==200 else 1)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s

@@ -1,0 +1,3 @@
+# Vendored third-party bundle is integrity-pinned and must remain byte-for-byte
+# identical to the npm artifact. Do not rewrite it to satisfy whitespace rules.
+webui/static/vendor/mermaid/mermaid.min.js -whitespace

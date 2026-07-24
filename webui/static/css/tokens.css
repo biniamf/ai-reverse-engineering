@@ -1,0 +1,100 @@
+/* Biniam Demissie Phase 3: design tokens for the reverse-engineering workstation UI.
+ * Aesthetic: an industrial hardware-instrument console. Amber-phosphor signal on cold
+ * rolled-steel dark. Monospace-forward, hairline rules, hazard accents. */
+
+:root {
+  --font-mono: ui-monospace, "SF Mono", "JetBrains Mono", "Cascadia Code",
+    "Fira Code", Menlo, Consolas, "Liberation Mono", monospace;
+  --font-ui: var(--font-mono);
+  --fs-2xs: 0.6875rem;   /* 11px labels/chips */
+  --fs-xs: 0.75rem;      /* 12px meta */
+  --fs-sm: 0.8125rem;    /* 13px body-secondary */
+  --fs-base: 0.875rem;   /* 14px body */
+  --fs-md: 1rem;
+  --fs-lg: 1.25rem;
+  --fs-xl: 1.625rem;
+  --lh-tight: 1.25;
+  --lh-body: 1.55;
+  --tracking-label: 0.08em;
+  --tracking-wide: 0.14em;
+
+  --c-void: #08090b;         /* deepest background */
+  --c-bg: #0b0e11;           /* app background */
+  --c-panel: #10151a;        /* raised panel */
+  --c-panel-2: #151b21;      /* nested panel / row hover */
+  --c-panel-3: #1b232b;      /* active row */
+  --c-inset: #0a0d10;        /* recessed wells (code, inputs) */
+
+  --c-rule: #222c34;         /* standard hairline */
+  --c-rule-strong: #30404b;  /* emphasized divider */
+  --c-rule-faint: #18212800; /* transparent baseline */
+
+  --c-ink: #d7e0e5;          /* primary text */
+  --c-ink-dim: #9aa7b0;      /* secondary text */
+  --c-ink-faint: #67757f;    /* tertiary / meta */
+  --c-ink-ghost: #48555e;    /* disabled / placeholder */
+
+  --c-amber: #f5a524;        /* primary signal / brand */
+  --c-amber-dim: #b9791a;
+  --c-amber-glow: rgba(245, 165, 36, 0.16);
+  --c-cyan: #4cc3d9;         /* interactive / links / addresses */
+  --c-cyan-dim: #2f8494;
+
+  --c-ok: #6bcf6b;           /* done / success / deterministic */
+  --c-run: #f5c542;          /* running / queued */
+  --c-warn: #f59e42;         /* warning */
+  --c-err: #ef6a6a;          /* failed / error */
+  --c-info: #4cc3d9;
+
+  --c-ok-bg: rgba(107, 207, 107, 0.12);
+  --c-run-bg: rgba(245, 197, 66, 0.12);
+  --c-warn-bg: rgba(245, 158, 66, 0.12);
+  --c-err-bg: rgba(239, 106, 106, 0.13);
+  --c-info-bg: rgba(76, 195, 217, 0.12);
+
+  --c-fact: var(--c-ok);        /* deterministic evidence */
+  --c-analyst: var(--c-cyan);   /* analyst annotation */
+  --c-hypo: var(--c-amber);     /* model hypothesis */
+
+  --radius-xs: 2px;
+  --radius-sm: 3px;
+  --radius-md: 5px;
+  --radius-lg: 8px;
+  --border-w: 1px;
+
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+  --sp-8: 32px;
+
+  --shadow-panel: 0 1px 0 rgba(255, 255, 255, 0.02) inset,
+    0 12px 30px -18px rgba(0, 0, 0, 0.9);
+  --shadow-pop: 0 18px 44px -20px rgba(0, 0, 0, 0.85);
+  --focus-ring: 0 0 0 2px var(--c-bg), 0 0 0 4px var(--c-amber);
+
+  --dur-fast: 90ms;
+  --dur: 160ms;
+  --ease: cubic-bezier(0.2, 0.6, 0.2, 1);
+
+  --rail-w: 340px;
+  --header-h: 52px;
+  --tabbar-h: 44px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-fast: 0ms;
+    --dur: 0ms;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

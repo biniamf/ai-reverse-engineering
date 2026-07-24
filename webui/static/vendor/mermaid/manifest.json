@@ -1,0 +1,15 @@
+{
+  "name": "mermaid",
+  "version": "11.16.0",
+  "algorithm": "sha256",
+  "files": {
+    "LICENSE": {
+      "sha256": "ec9fb67dcb25eccc416ed56e1aab819222c805a2a4bfe4cb19e7556bf2ffde80",
+      "bytes": 1089
+    },
+    "mermaid.min.js": {
+      "sha256": "74d7c46dabca328c2294733910a8aa1ed0c37451776e8d5295da38a2b758fb9b",
+      "bytes": 3565102
+    }
+  }
+}

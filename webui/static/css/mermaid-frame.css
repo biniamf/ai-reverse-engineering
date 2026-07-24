@@ -1,0 +1,31 @@
+/* Biniam Demissie Static CSS for the sandboxed Mermaid frame. Kept as an EXTERNAL
+ * stylesheet (served with the frame's script-src origin) so the frame does not need
+ * inline <style> of its own. */
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  color: #e9d9be;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+#diagram {
+  display: block;
+  padding: 6px;
+  overflow: auto;
+}
+
+#diagram svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #diagram svg * {
+    animation: none !important;
+    transition: none !important;
+  }
+}

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<!--
+  Biniam Demissie
+  Sandboxed Mermaid render frame.
+
+  This document is embedded by the parent with sandbox="allow-scripts" ONLY, so
+  it runs at an OPAQUE ("null") origin: no same-origin DOM access, no cookies,
+  no forms, no popups, no navigation of the top frame, no downloads. It talks to
+  the parent only through the strict postMessage protocol in
+  mermaid-runtime.js, and it NEVER sends rendered SVG back to the parent — only
+  a status code and clamped integer dimensions.
+
+  It is served by the dedicated Flask route /mermaid-frame, which attaches a
+  narrowly-scoped CSP:
+    * script-src is the EXPLICIT app origin (not 'self'): because a sandboxed
+      document has an opaque origin, the 'self' keyword would never match its
+      own served scripts, so the route emits the concrete scheme://host.
+    * style-src allows 'unsafe-inline' ONLY here, because Mermaid injects a
+      <style> element into the SVG at render time. This relaxation is contained
+      to this isolated frame and never touches the main document's CSP.
+    * connect-src 'none' so the frame cannot call the app's APIs or exfiltrate.
+    * frame-ancestors 'self' so only this app may embed the frame.
+-->
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="color-scheme" content="dark" />
+  <title>diagram</title>
+  <link rel="stylesheet" href="{{ static_versioned('css/mermaid-frame.css') }}" />
+</head>
+<body>
+  <!-- Sanitized SVG is inserted here (via importNode, never innerHTML). -->
+  <div id="diagram" aria-label="Rendered diagram"></div>
+
+  <!-- Vendored, integrity-verified Mermaid runtime, served from this app only.
+       Classic scripts (the opaque sandbox frame cannot load ES modules), in
+       order: shared pure guards -> Mermaid engine -> frame controller. Each
+       defines a window global the next reads. -->
+  <script src="{{ static_versioned('js/mermaid-guards.js') }}"></script>
+  <script src="{{ static_versioned('vendor/mermaid/mermaid.min.js') }}"></script>
+  <script src="{{ static_versioned('js/mermaid-runtime.js') }}"></script>
+</body>
+</html>
