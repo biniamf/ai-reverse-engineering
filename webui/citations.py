@@ -12,6 +12,15 @@ _CITATION_RE = re.compile(
     re.IGNORECASE,
 )
 
+# A model sometimes packs several references into one bracket, e.g.
+# ``[function:0x101165, string:0x102004]``. Split the bracket body into its
+# individual ``kind:value`` pairs so each becomes a real, validatable citation
+# instead of one malformed value.
+_CITATION_PART_RE = re.compile(
+    r"(function|string|import)\s*:\s*([^,\]]+)",
+    re.IGNORECASE,
+)
+
 _ADDR_RE = re.compile(r"^(?:0[xX])?([0-9a-fA-F]{1,16})$")
 
 
@@ -130,6 +139,15 @@ def _collect_addresses(result: Any) -> List[str]:
             v = d.get(key)
             if isinstance(v, str) and _ADDR_RE.match(v.strip()):
                 out.append(v)
+        # get_xrefs / callgraph return callers/callees as FLAT lists of address
+        # strings (e.g. ["0x10109d", ...]); index each so a cited caller/callee
+        # the model legitimately retrieved validates.
+        for key in ("callers", "callees", "nodes"):
+            v = d.get(key)
+            if isinstance(v, list):
+                for item in v:
+                    if isinstance(item, str) and _ADDR_RE.match(item.strip()):
+                        out.append(item)
     return out
 
 
@@ -187,13 +205,20 @@ def extract_citations(text: str) -> List[Dict[str, str]]:
         return []
     out: List[Dict[str, str]] = []
     for match in _CITATION_RE.finditer(text):
-        kind = match.group(1).lower()
-        raw_value = match.group(2).strip()
-        if kind in ("function", "string"):
-            value = canonicalize_address(raw_value)
-        else:
-            value = raw_value
-        out.append({"kind": kind, "raw": match.group(0), "value": value})
+        raw = match.group(0)
+        body = match.group(1) + ":" + match.group(2)
+        # One bracket may hold multiple kind:value pairs; emit each separately.
+        parts = _CITATION_PART_RE.findall(body)
+        if not parts:
+            continue
+        for kind_raw, value_raw in parts:
+            kind = kind_raw.lower()
+            value_raw = value_raw.strip()
+            if kind in ("function", "string"):
+                value = canonicalize_address(value_raw)
+            else:
+                value = value_raw
+            out.append({"kind": kind, "raw": raw, "value": value})
     return out
 
 
