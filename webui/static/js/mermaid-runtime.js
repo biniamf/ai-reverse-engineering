@@ -126,27 +126,52 @@
     const imported = document.importNode(cleanRoot, true);
     host.appendChild(imported);
 
+    // Prefer the SVG's intrinsic size, which is layout-independent and reliable
+    // right after import. mermaid encodes it in viewBox ("0 0 W H") and usually
+    // an explicit width/height. getBBox is a last resort: on a freshly-imported,
+    // not-yet-laid-out SVG it can return ~0 height, which previously collapsed the
+    // diagram to MIN_DIM (a thin strip).
     let width = 0;
     let height = 0;
-    try {
-      const box = imported.getBBox ? imported.getBBox() : null;
-      if (box && box.width && box.height) {
-        width = Math.ceil(box.width + box.x + 8);
-        height = Math.ceil(box.height + box.y + 8);
+    const viewBox = imported.getAttribute && imported.getAttribute("viewBox");
+    if (viewBox) {
+      const parts = viewBox.split(/[\s,]+/).map(Number);
+      if (parts.length === 4 && parts[2] > 0 && parts[3] > 0) {
+        width = Math.ceil(parts[2]);
+        height = Math.ceil(parts[3]);
       }
-    } catch (_e) {
     }
     if (!width || !height) {
-      const rect = imported.getBoundingClientRect
-        ? imported.getBoundingClientRect()
-        : { width: 0, height: 0 };
-      width = Math.ceil(rect.width) || parseInt(imported.getAttribute("width"), 10) || 320;
-      height = Math.ceil(rect.height) || parseInt(imported.getAttribute("height"), 10) || 200;
+      const aw = parseFloat(imported.getAttribute("width"));
+      const ah = parseFloat(imported.getAttribute("height"));
+      if (aw > 0) width = Math.ceil(aw);
+      if (ah > 0) height = Math.ceil(ah);
     }
+    if (!width || !height) {
+      try {
+        const box = imported.getBBox ? imported.getBBox() : null;
+        if (box && box.width && box.height) {
+          width = Math.ceil(box.width + box.x + 8);
+          height = Math.ceil(box.height + box.y + 8);
+        }
+      } catch (_e) {
+        /* getBBox can throw before layout; handled by the fallback below */
+      }
+    }
+    // Absolute fallback so a diagram is never rendered as a thin strip.
+    if (!width) width = 320;
+    if (!height) height = 160;
+    // A real diagram needs vertical room; clamp height up to a usable minimum.
     width = G.clamp(width, MIN_DIM, MAX_DIM);
-    height = G.clamp(height, MIN_DIM, MAX_DIM);
-    imported.setAttribute("width", "100%");
+    height = G.clamp(height, 80, MAX_DIM);
+    // Render at the diagram's INTRINSIC size; only downscale on a narrow
+    // container, never upscale. Setting width="100%" previously stretched a
+    // small 2-node graph to the full chat column, magnifying fonts ~6x. The
+    // viewBox preserves aspect ratio, so a fixed intrinsic width + auto height
+    // keeps text at its natural size while max-width lets it shrink responsively.
+    imported.setAttribute("width", String(width));
     imported.removeAttribute("height");
+    imported.style.width = width + "px";
     imported.style.maxWidth = "100%";
     imported.style.height = "auto";
     return { ok: true, width, height };

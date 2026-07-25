@@ -11,6 +11,9 @@ const READY_TIMEOUT_MS = 8000;
 const MAX_SOURCE_CHARS = 8000;
 const MAX_DIM = 4000;
 const MIN_DIM = 20;
+// A rendered diagram must be at least this tall so a small reported height
+// cannot collapse it into an unreadable strip.
+const MIN_DIAGRAM_HEIGHT = 80;
 
 // Safe, user-facing messages for the fixed frame error codes. We never show the
 // raw Mermaid exception; only these strings.
@@ -147,8 +150,16 @@ class DiagramRender {
     if (this.settled) return;
     this.settled = true;
     this._clearTimers();
+    // A rendered diagram needs real vertical room. Clamp height up to a usable
+    // minimum so a small or zero reported size can never collapse it into a thin
+    // strip (the frame also floors this; the parent is the last guard).
+    const h = clampDim(data.height, MIN_DIAGRAM_HEIGHT, MAX_DIM);
+    // Size the iframe to the diagram's intrinsic width (capped to the column via
+    // CSS max-width), not 100%, so a small graph is not stretched to full width
+    // and magnified. Height gets a usable floor; width follows the content.
     const w = clampDim(data.width, MIN_DIM, MAX_DIM);
-    const h = clampDim(data.height, MIN_DIM, MAX_DIM);
+    this.iframe.style.width = w + "px";
+    this.iframe.style.maxWidth = "100%";
     this.iframe.style.height = h + "px";
     this.iframe.style.overflow = "";
     this.iframe.hidden = false;
