@@ -418,12 +418,26 @@ def create_app(config=None, assistant=None, ghidra_client=None):
         except ModeError as exc:
             return jsonify({"error": str(exc)}), 400
 
+        assistant = _deps()["assistant"]
+        max_step_budget = getattr(assistant, "max_step_budget", 50)
+
         step_budget = data.get("step_budget")
         if step_budget is not None:
             if isinstance(step_budget, bool) or not isinstance(step_budget, int):
                 return jsonify({"error": "step_budget must be an integer"}), 400
             if step_budget < 1:
                 return jsonify({"error": "step_budget must be >= 1"}), 400
+            if step_budget > max_step_budget:
+                return (
+                    jsonify(
+                        {"error": f"step_budget must be <= {max_step_budget}"}
+                    ),
+                    400,
+                )
+
+        unbounded = data.get("unbounded", False)
+        if not isinstance(unbounded, bool):
+            return jsonify({"error": "unbounded must be a boolean"}), 400
 
         # Optional target address: required by workflows that operate on a
         # selected function (selected_function, call_chain). Validated/normalized
@@ -464,7 +478,6 @@ def create_app(config=None, assistant=None, ghidra_client=None):
             return jsonify({"error": str(exc)}), 400
 
         workflow_name = workflow_spec.name if workflow_spec else None
-        assistant = _deps()["assistant"]
 
         def generate():
             try:
@@ -474,6 +487,7 @@ def create_app(config=None, assistant=None, ghidra_client=None):
                     mode=mode,
                     workflow=workflow_name,
                     step_budget=step_budget,
+                    unbounded=unbounded,
                     target=target,
                     evidence_refs=evidence_refs,
                     thread_id=thread_id,

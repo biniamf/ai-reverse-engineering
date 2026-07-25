@@ -50,6 +50,13 @@ export function createChatController({
   let currentJob = null;
   let threads = []; // ordered client threads (main first)
   let selectedThread = MAIN_THREAD_ID; // "main" | <hex>
+  // Budget the just-finished run used, so a Continue action can resume with the
+  // same budget. Null means the run was unbounded (Continue also resumes unbounded).
+  let lastRunBudget = null;
+  // Set only for the duration of a Continue-triggered send(): override the
+  // composer's current budget so resume uses the finished run's budget.
+  let resumeBudget; // number | null | undefined
+  let resumeUnbounded; // boolean | undefined
 
   function currentThreadKey() {
     return isMainThread(selectedThread) ? null : selectedThread;
@@ -353,8 +360,17 @@ export function createChatController({
     if (composer.mode && composer.mode !== "copilot") {
       payload.mode = composer.mode;
       if (composer.workflow) payload.workflow = composer.workflow;
-      if (composer.stepBudget) payload.step_budget = composer.stepBudget;
     }
+    // Budget/unbounded apply in both modes; the server caps unbounded at
+    // MAX_STEP_BUDGET and ignores step_budget when unbounded is set. A Continue
+    // action overrides the composer with the finished run's budget.
+    const useUnbounded =
+      resumeUnbounded !== undefined ? resumeUnbounded : composer.unbounded;
+    const useBudget =
+      resumeBudget !== undefined ? resumeBudget : composer.stepBudget;
+    if (useUnbounded) payload.unbounded = true;
+    else if (useBudget) payload.step_budget = useBudget;
+    lastRunBudget = payload.unbounded ? null : payload.step_budget || null;
     // Structured evidence-to-chat handoff: only entity refs/addresses cross
     // the wire; the server builds the trusted, delimited framing.
     if (composer.target) payload.target = composer.target;
@@ -452,7 +468,40 @@ export function createChatController({
       // Diagram enhancement happens ONCE here, after the final paint has written the
       // completed answer markup — never per streamed token.
       activeRenders = activeRenders.concat(enhanceMermaid(answerHost));
+
+      // Budget-exhausted run: offer a Continue that resumes on the SAME thread
+      // with the same budget. The agent reloads the persisted tool results, so
+      // it finishes without redoing completed tool calls.
+      if (timeline.terminal && timeline.terminal.status === "max_turns") {
+        renderContinue(bubble);
+      }
     }
+  }
+
+  const CONTINUE_MESSAGE =
+    "Continue the previous task. You already retrieved the evidence above; " +
+    "do not restart — finish the task and give the final answer.";
+
+  function renderContinue(bubble) {
+    const budget = lastRunBudget;
+    const label = budget ? `Continue (+${budget})` : "Continue";
+    const btn = el("button", {
+      class: "btn btn--continue",
+      text: label,
+      attrs: { type: "button" },
+    });
+    const wrap = el("div", { class: "chat__continue", children: [btn] });
+    btn.addEventListener("click", () => {
+      if (abortController) return; // one active stream at a time
+      wrap.remove();
+      // Resume with the same budget/unbounded the finished run used.
+      resumeBudget = budget;
+      resumeUnbounded = budget === null;
+      send(CONTINUE_MESSAGE);
+      resumeBudget = undefined;
+      resumeUnbounded = undefined;
+    });
+    bubble.append(wrap);
   }
 
   function cancel() {

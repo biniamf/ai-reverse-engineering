@@ -214,12 +214,18 @@
                       class="field field--budget"
                       type="number"
                       min="1"
-                      max="12"
+                      max="50"
                       step="1"
                       placeholder="budget"
                       aria-describedby="budget-help"
-                      disabled
                     />
+                  </span>
+
+                  <span class="composer__field composer__field--check" id="unbounded-field">
+                    <label class="composer__check">
+                      <input id="unbounded-input" type="checkbox" />
+                      <span>No step limit</span>
+                    </label>
                   </span>
 
                   <span class="composer__field" id="target-field" hidden>

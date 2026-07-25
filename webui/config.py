@@ -151,11 +151,15 @@ class Config:
     max_response_bytes: int
     max_tool_result_chars: int
     max_context_chars: int
+    # Default per-turn budgets when the analyst requests nothing: copilot uses
+    # ``max_agent_turns``, autonomous uses the workflow's default or
+    # ``max_autonomous_steps``. A larger runtime request (or "unbounded") is
+    # honored up to ``max_step_budget`` -- the absolute safety cap below.
     max_agent_turns: int
-    # Upper bound on the server-enforced step budget for an autonomous
-    # workflow run. Copilot mode always uses ``max_agent_turns``; autonomous
-    # mode may request a larger budget but never above this ceiling.
     max_autonomous_steps: int
+    # Hard ceiling on any single run's step budget, including "unbounded". No
+    # request can exceed it, so a looping/confused model cannot drain the key.
+    max_step_budget: int
 
     chats_dir: str
 
@@ -220,6 +224,7 @@ class Config:
             max_context_chars=_get_int(env, "MAX_CONTEXT_CHARS", 100000),
             max_agent_turns=_get_int(env, "MAX_AGENT_TURNS", 5),
             max_autonomous_steps=_get_int(env, "MAX_AUTONOMOUS_STEPS", 12),
+            max_step_budget=_get_int(env, "MAX_STEP_BUDGET", 50),
             chats_dir=chats_dir,
             summary_cache_ttl=_get_float(env, "SUMMARY_CACHE_TTL", 300.0),
             summary_cache_max_entries=_get_int(

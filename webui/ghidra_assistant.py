@@ -73,9 +73,20 @@ SYSTEM_PROMPT = (
     "recorded callers/callees. Empty xrefs and a tool error are limitations "
     "of the retrieved evidence, not proof of absence; say so rather than "
     "inferring the function is dead.\n\n"
+    "Call relationships: get_callgraph returns a bounded FUNCTION-LEVEL "
+    "neighborhood and can be sparse (many edges point only to external imports). "
+    "To answer 'who calls X', 'what does X call', or 'the path from A to B', use "
+    "get_xrefs on the relevant function(s) -- its callers/callees include "
+    "instruction-level edges that the function-level graph may omit. If "
+    "get_callgraph is empty but get_xrefs shows callers/callees, trust the xrefs "
+    "and build the path from them.\n\n"
     + workflows.CITATION_INSTRUCTIONS
-    + "\n\nFormat the final response in Markdown; you may use ```mermaid code "
-    "blocks for call graphs or flowcharts."
+    + "\n\nFormat the final response in Markdown; you may use ```mermaid graph "
+    "blocks for call graphs or flowcharts. Mermaid labels must be plain: put the "
+    "name/address in the bracket text with NO colon, parentheses, angle brackets, "
+    "or quotes inside the label (e.g. `A[entry 0x101080]`, not "
+    "`A[entry: 0x101080]`), or the diagram will fail to parse. Put citations in "
+    "the surrounding prose, never inside a mermaid label."
 )
 
 # Fixed system prompt for the bounded, non-streaming "return conclusion to parent"
@@ -100,6 +111,7 @@ _DEFAULT_MAX_TOOL_RESULT_CHARS = 20000
 _DEFAULT_MAX_CONTEXT_CHARS = 100000
 _DEFAULT_MAX_AGENT_TURNS = 5
 _DEFAULT_MAX_AUTONOMOUS_STEPS = 12
+_DEFAULT_MAX_STEP_BUDGET = 50
 _SUMMARY_MAX_TOKENS = 2048
 _SUBRESULT_MAX_CHARS = 16000
 
@@ -178,6 +190,9 @@ class GhidraAssistant:
         )
         self.max_autonomous_steps = (
             config.max_autonomous_steps if config else _DEFAULT_MAX_AUTONOMOUS_STEPS
+        )
+        self.max_step_budget = (
+            config.max_step_budget if config else _DEFAULT_MAX_STEP_BUDGET
         )
 
         # Storage: a validated, atomic ChatStore. The chats_dir setter builds
@@ -408,6 +423,7 @@ class GhidraAssistant:
         mode: Optional[str] = None,
         workflow: Optional[str] = None,
         step_budget: Optional[int] = None,
+        unbounded: bool = False,
         target: Optional[str] = None,
         evidence_refs: Optional[List[Dict[str, Any]]] = None,
         thread_id: Optional[str] = None,
@@ -415,7 +431,9 @@ class GhidraAssistant:
         """Run one bounded agent turn, yielding JSON SSE event payloads."""
         mode = workflows.validate_mode(mode)
         wf = workflows.validate_workflow(mode, workflow)
-        budget, scope = self._resolve_budget_scope(mode, wf, step_budget, job_id)
+        budget, scope = self._resolve_budget_scope(
+            mode, wf, step_budget, job_id, unbounded=unbounded
+        )
 
         history = self.load_history(job_id, thread_id)
         if not history or history[0].get("role") != "system":
@@ -475,6 +493,7 @@ class GhidraAssistant:
                 "mode": mode,
                 "scope": scope,
                 "budget": budget,
+                "unbounded": bool(unbounded),
                 "workflow": wf.name if wf else None,
                 # Route the stream to the active thread on the client. ``None``
                 # (main) is sent as the reserved literal so the client can match
@@ -669,15 +688,37 @@ class GhidraAssistant:
                     break
             else:
                 completion_status = "max_turns"
+
+            # Budget exhausted (either path) without the model producing a final
+            # answer. Rather than return an empty "partial results", do ONE forced
+            # text-only synthesis turn so the user gets a best-effort answer from
+            # the evidence already gathered (no further tools are run).
+            if completion_status == "max_turns" and not final_answer:
                 yield self._event(
                     {
                         "type": "warning",
                         "content": (
-                            "Step budget reached before a final answer; "
-                            "reporting partial results."
+                            "Step budget reached; summarizing the partial results "
+                            "gathered so far."
                         ),
                     }
                 )
+                bounded = context_policy.build_context(
+                    messages,
+                    max_tool_result_chars=self.max_tool_result_chars,
+                    max_context_chars=self.max_context_chars,
+                )
+                outcome = yield from self._model_turn(
+                    bounded, job_id, partial, force_final=True
+                )
+                if not outcome.get("error"):
+                    message = outcome.get("message") or {}
+                    messages.append(self._serialize_assistant_message(message))
+                    content = message.get("content") if isinstance(message, dict) else None
+                    if content:
+                        final_answer = content
+                        if not outcome.get("streamed_content"):
+                            yield self._event({"type": "token", "content": content})
         except GeneratorExit:
             # Client disconnected (stream cancel). Persist a consistent partial state
             # and stop where detectable.
@@ -953,21 +994,28 @@ class GhidraAssistant:
             "claims):\n" + "\n".join(lines)
         )
 
-    def _resolve_budget_scope(self, mode, wf, step_budget, job_id):
+    def _resolve_budget_scope(self, mode, wf, step_budget, job_id, unbounded=False):
+        ceiling = self.max_step_budget
         if mode == workflows.MODE_AUTONOMOUS:
-            ceiling = self.max_autonomous_steps
-            default = wf.default_budget if wf else self.max_agent_turns
-            requested = step_budget if step_budget is not None else default
-            try:
-                requested = int(requested)
-            except (TypeError, ValueError):
-                requested = default
-            budget = max(1, min(requested, ceiling))
-            scope = wf.scope if wf else f"Active job {job_id}"
+            default = wf.default_budget if wf else self.max_autonomous_steps
+            base_scope = wf.scope if wf else f"Active job {job_id}"
         else:
-            budget = self.max_agent_turns
-            scope = f"Active job {job_id}"
-        return budget, scope
+            default = self.max_agent_turns
+            base_scope = f"Active job {job_id}"
+
+        # "Unbounded" is never truly infinite: it runs up to the absolute safety
+        # cap so a looping/confused model cannot drain the provider key.
+        if unbounded:
+            budget = ceiling
+            return budget, f"{base_scope} (unbounded; safety cap {ceiling})"
+
+        requested = step_budget if step_budget is not None else default
+        try:
+            requested = int(requested)
+        except (TypeError, ValueError):
+            requested = default
+        budget = max(1, min(requested, ceiling))
+        return budget, base_scope
 
     def _serialize_history(self, messages: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """Sanitize every message before persistence (drop reasoning fields)."""

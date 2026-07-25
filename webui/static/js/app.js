@@ -169,6 +169,7 @@ async function setupComposer(chat, tabs) {
   const budgetInput = document.getElementById("budget-input");
   const budgetField = document.getElementById("budget-field");
   const budgetHelp = document.getElementById("budget-help");
+  const unboundedInput = document.getElementById("unbounded-input");
   const targetInput = document.getElementById("target-input");
   const targetField = document.getElementById("target-field");
   const targetHelp = document.getElementById("target-help");
@@ -203,25 +204,33 @@ async function setupComposer(chat, tabs) {
     if (opt && opt.dataset.budget) budgetInput.value = opt.dataset.budget;
   }
 
+  function syncBudgetEnabled() {
+    // Budget applies to both modes now; the number input is disabled only when
+    // "No step limit" is checked (the server caps unbounded at MAX_STEP_BUDGET).
+    budgetInput.disabled = unboundedInput.checked;
+  }
+
   function syncMode() {
     const autonomous = modeSel.value === "autonomous";
     workflowSel.disabled = !autonomous;
-    budgetInput.disabled = !autonomous;
     workflowField.hidden = !autonomous;
-    budgetField.hidden = !autonomous;
+    // Budget + unbounded stay visible in copilot too.
     if (autonomous) selectDefaultWorkflow();
+    syncBudgetEnabled();
     updateScope();
   }
 
   function updateBudgetHelp() {
-    if (modeSel.value !== "autonomous") {
-      budgetHelp.hidden = true;
-      return;
-    }
     budgetHelp.hidden = false;
-    budgetHelp.textContent =
-      `Bounded steps (${BUDGET_MIN}–${BUDGET_MAX}). The run stops when the ` +
-      `budget is reached and reports partial results — it never continues silently.`;
+    if (unboundedInput.checked) {
+      budgetHelp.textContent =
+        `No step limit (safety-capped at ${BUDGET_MAX}). The run continues ` +
+        `until it finishes; cost grows with the number of tool/model calls.`;
+    } else {
+      budgetHelp.textContent =
+        `Bounded steps (${BUDGET_MIN}–${BUDGET_MAX}). If the budget is reached, ` +
+        `the run reports partial results and offers Continue — it never continues silently.`;
+    }
   }
 
   function updateScope() {
@@ -285,6 +294,10 @@ async function setupComposer(chat, tabs) {
   }
 
   modeSel.addEventListener("change", syncMode);
+  unboundedInput.addEventListener("change", () => {
+    syncBudgetEnabled();
+    updateBudgetHelp();
+  });
   workflowSel.addEventListener("change", () => {
     const opt = workflowSel.selectedOptions[0];
     if (opt && opt.dataset.budget) budgetInput.value = opt.dataset.budget;
@@ -315,13 +328,14 @@ async function setupComposer(chat, tabs) {
     const typedTarget = targetInput.value.trim();
     const target =
       (ref && ref.kind === "function" ? ref.addr : null) || typedTarget || null;
+    const unbounded = unboundedInput.checked;
     return {
       mode: modeSel.value,
       workflow: modeSel.value === "autonomous" ? workflowSel.value || null : null,
+      // Budget/unbounded now apply in both modes; the server caps at MAX_STEP_BUDGET.
+      unbounded,
       stepBudget:
-        modeSel.value === "autonomous" && budgetInput.value
-          ? parseInt(budgetInput.value, 10)
-          : null,
+        !unbounded && budgetInput.value ? parseInt(budgetInput.value, 10) : null,
       evidence,
       target,
     };

@@ -151,6 +151,13 @@ an executable format. Once analysis completes, switch between two workspace tabs
   - **Autonomous**: start a named, budgeted workflow that runs multiple
     bounded steps on its own and shows a live activity timeline as it works.
 
+Both modes take a per-task **step budget**, and a **No step limit** option that
+runs until the task finishes (still capped by `MAX_STEP_BUDGET` so a looping
+model cannot run away). If a run reaches its budget, it reports partial results
+and offers **Continue** — which resumes the same conversation using the evidence
+already retrieved, without redoing completed tool calls. Cost grows with the
+number of tool/model calls, so higher budgets cost more.
+
 Available workflows:
 
 | Workflow | Purpose | Requires a target function address |

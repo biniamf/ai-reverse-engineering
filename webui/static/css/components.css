@@ -815,6 +815,29 @@ select.field {
   min-width: 0;
 }
 .composer__field[hidden] { display: none; }
+.composer__field--check { justify-content: flex-end; }
+.composer__check {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--fs-2xs);
+  color: var(--c-ink-faint);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+/* Continue (resume) affordance shown after a budget-exhausted run. */
+.chat__continue { margin-top: var(--sp-2); }
+.btn--continue {
+  font-size: var(--fs-2xs);
+  padding: 4px 10px;
+  background: var(--c-info-bg);
+  border: var(--border-w) solid var(--c-info);
+  color: var(--c-info);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+.btn--continue:hover { background: var(--c-info); color: var(--c-bg); }
 .composer__label {
   font-size: var(--fs-2xs);
   color: var(--c-ink-faint);
