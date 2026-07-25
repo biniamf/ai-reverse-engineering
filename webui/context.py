@@ -64,20 +64,20 @@ def build_context(
     # keys such as ``subresult``); persistence uses sanitize_message above.
     sanitized: List[Dict[str, Any]] = [sanitize_model_message(m) for m in messages]
 
-    # Pass 1: cap each tool result and collapse identical repeats.
-    seen_tool_content: set = set()
-    for msg in sanitized:
-        if msg.get("role") != "tool":
-            continue
-        content = msg.get("content")
-        if not isinstance(content, str):
-            continue
-        capped = cap_tool_result(content, max_tool_result_chars)
-        if capped in seen_tool_content:
+    # Pass 1: cap each tool result, then collapse EARLIER identical repeats while
+    # always keeping the most recent occurrence intact. Collapsing the latest
+    # copy would blank the evidence the current turn just re-fetched, leaving the
+    # model with a bare marker and no data to cite -- which is worse than a repeat.
+    tool_msgs = [m for m in sanitized if m.get("role") == "tool"
+                 and isinstance(m.get("content"), str)]
+    for msg in tool_msgs:
+        msg["content"] = cap_tool_result(msg["content"], max_tool_result_chars)
+    last_index_by_content: Dict[str, int] = {}
+    for i, msg in enumerate(tool_msgs):
+        last_index_by_content[msg["content"]] = i
+    for i, msg in enumerate(tool_msgs):
+        if last_index_by_content.get(msg["content"]) != i:
             msg["content"] = REPEATED_RESULT_MARKER
-        else:
-            seen_tool_content.add(capped)
-            msg["content"] = capped
 
     if _total_length(sanitized) <= max_context_chars:
         return sanitized
